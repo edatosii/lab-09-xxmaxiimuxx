@@ -101,55 +101,6 @@ public class EstudianteServlet extends HttpServlet {
             return;
         }
 
-        if ("buscar".equals(accion)) {
-            String idStr = request.getParameter("id");
-            try {
-                int id = Integer.parseInt(idStr);
-                Estudiante estudiante = dao.buscarPorId(id);
-                if (estudiante != null) {
-                    request.setAttribute("estudiante", estudiante);
-                    request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
-                } else {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                }
-            } catch (NumberFormatException e) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            }
-            return;
-        }
-
-        if ("actualizar".equals(accion)) {
-            String idStr = request.getParameter("id");
-            try {
-                int id = Integer.parseInt(idStr);
-                Estudiante estudiante = dao.buscarPorId(id);
-                if (estudiante != null) {
-                    request.setAttribute("estudiante", estudiante);
-                    request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
-                } else {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                }
-            } catch (NumberFormatException e) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            }
-            return;
-        }
-
-        if ("eliminar".equals(accion)) {
-            String idStr = request.getParameter("id");
-            try {
-                int id = Integer.parseInt(idStr);
-                if (dao.eliminar(id)) {
-                    response.sendRedirect("estudiantes");
-                } else {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                }
-            } catch (NumberFormatException e) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            }
-            return;
-        }
-
         if ("editar".equals(accion)) {
             String idStr = request.getParameter("id");
             try {
@@ -167,6 +118,9 @@ public class EstudianteServlet extends HttpServlet {
             return;
         }
 
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+    
+
         // TODO Etapa 6: según 'accion' (ver CONTRATO arriba), lo que falta:
         // - null o "listar": setAttribute("estudiantes", ...) y forward a VISTA_LISTAR
         // - "editar": convierta "id" a int (cuidado con NumberFormatException), busque
@@ -175,7 +129,6 @@ public class EstudianteServlet extends HttpServlet {
         // si no existe: response.sendError(HttpServletResponse.SC_NOT_FOUND)
         // - otra: response.sendError(HttpServletResponse.SC_BAD_REQUEST)
         // Pista: request.getRequestDispatcher(ruta).forward(request, response)
-        throw new UnsupportedOperationException("TODO: doGet");
     }
 
     // =====================================================================
@@ -209,12 +162,67 @@ public class EstudianteServlet extends HttpServlet {
             return;
         }
 
+        // 2. AGREGAR: "actualizar"
+        if ("actualizar".equals(accion)) {
+            String idStr = request.getParameter("id");
+            try {
+                int id = Integer.parseInt(idStr);
+                
+                // Regla del contrato: verificar si el ID existe ANTES de validar
+                if (dao.buscarPorId(id) == null) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+
+                String nombre = request.getParameter("nombre");
+                String correo = request.getParameter("correo");
+                String semestre = request.getParameter("semestre");
+
+                String error = validar(nombre, correo, semestre);
+                if (error == null) {
+                    Estudiante estudiante = new Estudiante(id, nombre.trim(), correo.trim(),
+                            Integer.parseInt(semestre.trim()));
+                    if (dao.actualizar(estudiante)) {
+                        response.sendRedirect("estudiantes");
+                        return;
+                    }
+                    error = "No se pudo actualizar el estudiante. Verifique que el correo no esté repetido.";
+                }
+
+                // Si falla la validación o el correo está duplicado en la BD:
+                request.setAttribute("estudiante", new Estudiante(id, nombre != null ? nombre.trim() : "", 
+                                                       correo != null ? correo.trim() : "", 0));
+                request.setAttribute("error", error);
+                request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+            return;
+        }
+
+        // 3. AGREGAR: "eliminar"
+        if ("eliminar".equals(accion)) {
+            String idStr = request.getParameter("id");
+            try {
+                int id = Integer.parseInt(idStr);
+                if (dao.eliminar(id)) {
+                    response.sendRedirect("estudiantes");
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+            return;
+        }
+
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+    
         // TODO Etapa 7: según 'accion' (ver CONTRATO arriba), lo que falta: actualizar,
         // eliminar
         // u otra (400).
         // Para actualizar construya el objeto con:
         // new Estudiante(id, nombre.trim(), correo.trim(),
         // Integer.parseInt(semestre.trim()))
-        throw new UnsupportedOperationException("TODO: doPost");
     }
 }
